@@ -17,10 +17,17 @@ pipeline {
         stage('Monorepo Build & Push Image') {
             steps {
                 script {
-                    // Lấy danh sách các file thay đổi trong commit này
-                    def changedFiles = sh(script: 'git diff --name-only HEAD~1 HEAD', returnStdout: true).trim().split('\n')
+                    // Định nghĩa danh sách file thay đổi
+                    def changedFiles = []
                     
-                    // Danh sách toàn bộ các service trong Monorepo của bạn
+                    // Thử lấy danh sách file thay đổi, nếu lỗi (do build lần đầu) thì catch lại và log ra
+                    try {
+                        changedFiles = sh(script: 'git diff --name-only HEAD~1 HEAD', returnStdout: true).trim().split('\n')
+                    } catch (Exception e) {
+                        echo "⚠️ Không tìm thấy lịch sử commit trước (Có thể là build lần đầu). Tiến hành quét toàn bộ Monorepo!"
+                    }
+                    
+                    // Danh sách toàn bộ các service trong Monorepo
                     def services = [
                         'media', 'product', 'order', 'inventory', 'payment', 'promotion', 
                         'rating', 'delivery', 'sampledata', 'recommendation',
@@ -33,12 +40,13 @@ pipeline {
                         sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                     }
 
-                    // Duyệt qua từng service, nếu có thay đổi thì mới Build & Push
+                    // Duyệt qua từng service
                     for (service in services) {
-                        if (changedFiles.any { it.startsWith("${service}/") }) {
-                            echo "🚀 Phát hiện thay đổi tại service: ${service}. Bắt đầu build..."
+                        // NẾU build lần đầu (changedFiles rỗng) HOẶC có file thay đổi thuộc thư mục của service đó
+                        if (changedFiles.isEmpty() || changedFiles.any { it.startsWith("${service}/") }) {
+                            echo "🚀 Bắt đầu đóng gói và build image cho service: ${service}"
                             
-                            // 1. Build package jar (Bỏ qua chạy test để build thẳng siêu tốc)
+                            // 1. Build package jar (Bỏ qua chạy test để build siêu tốc)
                             sh "mvn package -DskipTests -pl ${service} -am"
                             
                             // 2. Build và Push Docker Image lên Docker Hub
@@ -49,7 +57,7 @@ pipeline {
                                 docker push ${fullImageName}:latest
                             """
                             
-                            // 3. Ghi nhận lại dịch vụ nào vừa được build để tí nữa cập nhật Manifest
+                            // Ghi nhận lại dịch vụ nào vừa được build để tí nữa cập nhật Manifest
                             env["BUILD_TRIGGERED_${service}"] = "true"
                         } else {
                             echo "⏭️ ${service} không có thay đổi, bỏ qua."
