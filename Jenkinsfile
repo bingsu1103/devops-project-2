@@ -61,7 +61,7 @@ pipeline {
                             """
                             
                             // Ghi nhận lại dịch vụ nào vừa được build để tí nữa cập nhật Manifest
-                            env["BUILD_TRIGGERED_${service}"] = "true"
+                            env."BUILD_TRIGGERED_${service}" = "true"
                         } else {
                             echo "⏭️ ${service} không có thay đổi, bỏ qua."
                         }
@@ -81,7 +81,7 @@ pipeline {
                     ]
 
                     // Kiểm tra xem có bất kỳ service nào được build ở stage trước không
-                    def dynamicTriggers = services.findAll { env["BUILD_TRIGGERED_${it}"] == "true" }
+                    def dynamicTriggers = services.findAll { env."BUILD_TRIGGERED_${it}" == "true" }
                     
                     if (dynamicTriggers.isEmpty()) {
                         echo "No images were built. Skipping Manifest update."
