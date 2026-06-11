@@ -22,7 +22,10 @@ pipeline {
                     
                     // Thử lấy danh sách file thay đổi, nếu lỗi (do build lần đầu) thì catch lại và log ra
                     try {
-                        changedFiles = sh(script: 'git diff --name-only HEAD~1 HEAD', returnStdout: true).trim().split('\n')
+                        def stdout = sh(script: 'git diff --name-only HEAD~1 HEAD', returnStdout: true).trim()
+                        if (stdout) {
+                            changedFiles = stdout.split('\n') as List
+                        }
                     } catch (Exception e) {
                         echo "⚠️ Không tìm thấy lịch sử commit trước (Có thể là build lần đầu). Tiến hành quét toàn bộ Monorepo!"
                     }
