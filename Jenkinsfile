@@ -48,8 +48,8 @@ pipeline {
 
                     // Duyệt qua từng service
                     for (service in services) {
-                        // Ép build toàn bộ service trong lượt này để khởi tạo các image với tag mới dạng commit ID
-                        if (true || changedFiles.isEmpty() || changedFiles.any { it.startsWith("${service}/") }) {
+                        // NẾU build lần đầu (changedFiles rỗng) HOẶC có file thay đổi thuộc thư mục của service đó
+                        if (changedFiles.isEmpty() || changedFiles.any { it.startsWith("${service}/") }) {
                             echo "🚀 Bắt đầu đóng gói và build image cho service: ${service}"
                             
                             // 1. Build package jar (Bỏ qua chạy test để build siêu tốc)
