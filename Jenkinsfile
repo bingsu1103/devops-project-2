@@ -9,14 +9,17 @@ pipeline {
         // 2. Đường dẫn repo Manifest của bạn (Thay đổi account/repo tương ứng)
         MANIFEST_REPO  = 'github.com/bingsu1103/gitops-manifest-k8s.git'
         
-        // Tạo Tag độc nhất cho mỗi lần build bằng chuỗi "build-[Số-thứ-tự-build]"
-        IMAGE_TAG      = "build-${BUILD_NUMBER}"
+        // Tag sẽ được gán động bằng commit ID trong stage
+        IMAGE_TAG      = 'temp'
     }
 
     stages {
         stage('Monorepo Build & Push Image') {
             steps {
                 script {
+                    env.IMAGE_TAG = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+                    echo "🚀 Sử dụng commit ID làm image tag: ${env.IMAGE_TAG}"
+                    
                     // Định nghĩa danh sách file thay đổi
                     def changedFiles = []
                     
@@ -45,8 +48,8 @@ pipeline {
 
                     // Duyệt qua từng service
                     for (service in services) {
-                        // NẾU build lần đầu (changedFiles rỗng) HOẶC có file thay đổi thuộc thư mục của service đó
-                        if (changedFiles.isEmpty() || changedFiles.any { it.startsWith("${service}/") }) {
+                        // Ép build toàn bộ service trong lượt này để khởi tạo các image với tag mới dạng commit ID
+                        if (true || changedFiles.isEmpty() || changedFiles.any { it.startsWith("${service}/") }) {
                             echo "🚀 Bắt đầu đóng gói và build image cho service: ${service}"
                             
                             // 1. Build package jar (Bỏ qua chạy test để build siêu tốc)
